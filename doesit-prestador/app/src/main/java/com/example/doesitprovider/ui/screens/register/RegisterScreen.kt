@@ -120,7 +120,11 @@ fun RegisterScreen(
                     val cal = Calendar.getInstance()
                     val ageCal = Calendar.getInstance().apply { time = birthDate }
                     var age = cal.get(Calendar.YEAR) - ageCal.get(Calendar.YEAR)
-                    if (cal.get(Calendar.DAY_OF_YEAR) < ageCal.get(Calendar.DAY_OF_YEAR)) age--
+                    // Correção: comparar mês e dia em vez de DAY_OF_YEAR (que é impreciso entre anos diferentes)
+                    val birthdayPassedThisYear = cal.get(Calendar.MONTH) > ageCal.get(Calendar.MONTH) ||
+                        (cal.get(Calendar.MONTH) == ageCal.get(Calendar.MONTH) &&
+                         cal.get(Calendar.DAY_OF_MONTH) >= ageCal.get(Calendar.DAY_OF_MONTH))
+                    if (!birthdayPassedThisYear) age--
                     if (age < 18)  dateError = "Você deve ter pelo menos 18 anos."
                     if (age > 110) dateError = "Data de nascimento inválida."
                 } else dateError = "Data de nascimento inválida."

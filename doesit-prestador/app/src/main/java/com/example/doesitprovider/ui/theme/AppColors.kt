@@ -35,6 +35,7 @@ fun getCategoryLogo(categoryName: String?): Int = when (categoryName?.lowercase(
     "limpeza"     -> R.drawable.logo_pedido_limpeza
     "chaveiro"    -> R.drawable.logo_pedido_chaveiro
     "montagem"    -> R.drawable.logo_pedido_montagem
+    "instalação"  -> R.drawable.logo_pedido_instalacao
     else          -> R.drawable.logo_pedido_eletrica
 }
 

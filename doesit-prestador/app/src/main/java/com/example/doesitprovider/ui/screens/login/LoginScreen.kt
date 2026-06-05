@@ -321,8 +321,6 @@ fun ForgotPasswordModal(onDismiss: () -> Unit, onSuccess: (String) -> Unit) {
                                         },
                                         onConfirm = {
                                             val input = code.joinToString("")
-                                            // Código master de testes
-                                            if (input == "000000") { step = ForgotStep.NEW_PASSWORD; return@ForgotCodeInput }
                                             val expired = System.currentTimeMillis() - codeSentTime > 15 * 60 * 1000
                                             if (expired) { errorMessage = "Código expirado. Solicite um novo."; isError = true; return@ForgotCodeInput }
                                             scope.launch {

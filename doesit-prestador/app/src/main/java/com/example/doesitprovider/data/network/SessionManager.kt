@@ -9,22 +9,17 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 
 object SessionManager {
-    private const val PREF_NAME         = "secure_session_provider"
-    private const val KEY_TOKEN         = "token"
-    private const val KEY_USER_ID       = "userId"
-    private const val KEY_USER_NAME     = "userName"
-    private const val KEY_USER_EMAIL    = "userEmail"
-    private const val KEY_USER_PHONE    = "userPhone"
-    private const val KEY_USER_CPF      = "userCpf"
-    private const val KEY_USER_BIRTH    = "userBirthDate"
-    private const val KEY_USER_GENDER   = "userGender"
-    private const val KEY_RATING        = "rating"
-    private const val KEY_RATING_COUNT  = "ratingCount"
-    // Preferências de notificação (persistidas)
-    private const val KEY_NOTIF_PUSH      = "notifPush"
-    private const val KEY_NOTIF_EMAIL     = "notifEmail"
-    private const val KEY_NOTIF_SMS       = "notifSms"
-    private const val KEY_NOTIF_WHATSAPP  = "notifWhatsapp"
+    private const val PREF_NAME        = "secure_session_provider"
+    private const val KEY_TOKEN        = "token"
+    private const val KEY_USER_ID      = "userId"
+    private const val KEY_USER_NAME    = "userName"
+    private const val KEY_USER_EMAIL   = "userEmail"
+    private const val KEY_USER_PHONE   = "userPhone"
+    private const val KEY_USER_CPF     = "userCpf"
+    private const val KEY_USER_BIRTH   = "userBirthDate"
+    private const val KEY_USER_GENDER  = "userGender"
+    private const val KEY_RATING       = "rating"
+    private const val KEY_RATING_COUNT = "ratingCount"
 
     private var prefs: SharedPreferences? = null
 
@@ -73,22 +68,24 @@ object SessionManager {
         get() = prefs?.getString(KEY_USER_GENDER, "") ?: ""
         set(value) = prefs?.edit()?.putString(KEY_USER_GENDER, value)?.apply() ?: Unit
 
-    // ── Preferências de notificação (padrão: Push=true, Email=true, SMS=false, WhatsApp=false)
+    // ── Preferências de notificação — salvas por conta (chave inclui userId) ─
+    // Isso garante que cada conta tenha suas próprias configurações independentes.
+
     var notifPushEnabled: Boolean
-        get() = prefs?.getBoolean(KEY_NOTIF_PUSH, true) ?: true
-        set(value) = prefs?.edit()?.putBoolean(KEY_NOTIF_PUSH, value)?.apply() ?: Unit
+        get() = prefs?.getBoolean("notifPush_$userId", true) ?: true
+        set(value) = prefs?.edit()?.putBoolean("notifPush_$userId", value)?.apply() ?: Unit
 
     var notifEmailEnabled: Boolean
-        get() = prefs?.getBoolean(KEY_NOTIF_EMAIL, true) ?: true
-        set(value) = prefs?.edit()?.putBoolean(KEY_NOTIF_EMAIL, value)?.apply() ?: Unit
+        get() = prefs?.getBoolean("notifEmail_$userId", true) ?: true
+        set(value) = prefs?.edit()?.putBoolean("notifEmail_$userId", value)?.apply() ?: Unit
 
     var notifSmsEnabled: Boolean
-        get() = prefs?.getBoolean(KEY_NOTIF_SMS, false) ?: false
-        set(value) = prefs?.edit()?.putBoolean(KEY_NOTIF_SMS, value)?.apply() ?: Unit
+        get() = prefs?.getBoolean("notifSms_$userId", false) ?: false
+        set(value) = prefs?.edit()?.putBoolean("notifSms_$userId", value)?.apply() ?: Unit
 
     var notifWhatsappEnabled: Boolean
-        get() = prefs?.getBoolean(KEY_NOTIF_WHATSAPP, false) ?: false
-        set(value) = prefs?.edit()?.putBoolean(KEY_NOTIF_WHATSAPP, value)?.apply() ?: Unit
+        get() = prefs?.getBoolean("notifWhatsapp_$userId", false) ?: false
+        set(value) = prefs?.edit()?.putBoolean("notifWhatsapp_$userId", value)?.apply() ?: Unit
 
     // ── Campos reativos (Compose) ─────────────────────────────────────────────
 
@@ -130,7 +127,8 @@ object SessionManager {
             remove(KEY_USER_EMAIL); remove(KEY_USER_PHONE); remove(KEY_USER_CPF)
             remove(KEY_USER_BIRTH); remove(KEY_USER_GENDER)
             remove(KEY_RATING); remove(KEY_RATING_COUNT)
-            // Preferências de notificação são mantidas intencionalmente
+            // Preferências de notificação são mantidas intencionalmente por conta
+            // (identificadas por userId, continuam válidas para futuros logins)
         }?.apply()
         _rating = 0.0; _ratingCount = 0; isOnline = false; accessToken = ""
     }
