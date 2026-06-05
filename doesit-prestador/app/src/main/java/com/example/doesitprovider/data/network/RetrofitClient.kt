@@ -1,28 +1,36 @@
 package com.example.doesitprovider.data.network
 
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.1.104:8080/"
+    private const val BASE_URL = "https://w5ru0xv66g.execute-api.sa-east-1.amazonaws.com/"
 
-    private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+    private val authInterceptor = Interceptor { chain ->
+        val original = chain.request()
+        val token = SessionManager.token
+
+        val request = if (token.isNotEmpty()) {
+            original.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+        } else {
+            original
+        }
+
+        chain.proceed(request)
     }
 
-    private val client = OkHttpClient.Builder()
-        .addInterceptor(logging)
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
         .build()
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(client)
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

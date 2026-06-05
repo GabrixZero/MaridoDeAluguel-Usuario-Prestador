@@ -7,7 +7,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.doesitprovider.data.network.SessionManager
 import com.example.doesitprovider.ui.screens.address.AddressScreen
 import com.example.doesitprovider.ui.screens.address.EditAddressScreen
-import com.example.doesitprovider.ui.screens.avaliacoes.AvaliacoesScreen
 import com.example.doesitprovider.ui.screens.history.HistoryScreen
 import com.example.doesitprovider.ui.screens.home.HomeScreen
 import com.example.doesitprovider.ui.screens.login.LoginScreen
@@ -84,14 +83,6 @@ fun SetupNavGraph() {
             )
         }
 
-        composable("avaliacoes") {
-            AvaliacoesScreen(
-                onBack              = { nav.popBackStack() },
-                onNavigateToHome    = { nav.navigate("home") { popUpTo("home") { inclusive = true } } },
-                onNavigateToProfile = { nav.navigate("profile") }
-            )
-        }
-
         composable("profile") {
             ProfileScreen(
                 onNavigateToHome    = { nav.navigate("home") { popUpTo("home") { inclusive = true } } },
@@ -114,12 +105,9 @@ fun SetupNavGraph() {
                 onNavigateToHistory = { nav.navigate("history") },
                 onNavigateToProfile = { nav.navigate("profile") },
                 onLogout = { message ->
-                    SessionManager.clear()
+                    nav.navigate("login") { popUpTo(0) { inclusive = true } }
                     if (message != null) {
-                        nav.navigate("login") { popUpTo(0) { inclusive = true } }
                         nav.currentBackStackEntry?.savedStateHandle?.set("success_msg", message)
-                    } else {
-                        nav.navigate("login") { popUpTo(0) { inclusive = true } }
                     }
                 },
                 onBack = { nav.popBackStack() }
@@ -137,14 +125,16 @@ fun SetupNavGraph() {
         composable("address") {
             AddressScreen(
                 onBack              = { nav.popBackStack() },
-                onEdit              = { nav.navigate("edit_address") },
+                onEdit              = { addressId -> nav.navigate("edit_address/$addressId") },
                 onNavigateToHome    = { nav.navigate("home") { popUpTo("home") { inclusive = true } } },
                 onNavigateToProfile = { nav.navigate("profile") }
             )
         }
 
-        composable("edit_address") {
+        composable("edit_address/{addressId}") { back ->
+            val addressId = back.arguments?.getString("addressId")?.toLongOrNull() ?: 0L
             EditAddressScreen(
+                addressId           = addressId,
                 onBack              = { nav.popBackStack() },
                 onNavigateToHome    = { nav.navigate("home") { popUpTo("home") { inclusive = true } } },
                 onNavigateToProfile = { nav.navigate("profile") }

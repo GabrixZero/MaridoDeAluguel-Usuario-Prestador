@@ -1,7 +1,13 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+val localProps = Properties().also {
+    it.load(rootProject.file("local.properties").inputStream())
 }
 
 android {
@@ -16,6 +22,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "COGNITO_REGION",        "\"${localProps["cognito.region"]}\"")
+        buildConfigField("String", "COGNITO_USER_POOL_ID",  "\"${localProps["cognito.userPoolId"]}\"")
+        buildConfigField("String", "COGNITO_CLIENT_ID",     "\"${localProps["cognito.clientId"]}\"")
+        buildConfigField("String", "COGNITO_CLIENT_SECRET", "\"${localProps["cognito.clientSecret"]}\"")
     }
 
     buildTypes {
@@ -31,16 +42,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -60,5 +73,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation(libs.okhttp.logging)
+    implementation(libs.aws.sdk.cognito)
+    implementation(libs.androidx.security.crypto)
 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doesitprovider.data.network.SessionManager
 import com.example.doesitprovider.data.repository.ServiceRepository
+import com.example.doesitprovider.data.repository.UserRepository
 import com.example.doesitprovider.ui.components.DoesItBottomNavBar
 import com.example.doesitprovider.ui.components.QuickAccessCard
 import com.example.doesitprovider.ui.theme.AppColors
@@ -35,10 +36,13 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToServiceDetail: (Long) -> Unit
 ) {
-    val repo = remember { ServiceRepository() }
-    val scope = rememberCoroutineScope()
+    val repo     = remember { ServiceRepository() }
+    val userRepo = remember { UserRepository() }
+    val scope    = rememberCoroutineScope()
     val isOnline = SessionManager.isOnline
     val userName = SessionManager.userName.split(" ").firstOrNull() ?: "Prestador"
+
+    LaunchedEffect(Unit) { userRepo.getCurrentUser() }
 
     Scaffold(
         containerColor = AppColors.Background,

@@ -1,5 +1,9 @@
 package com.example.doesitprovider.ui.screens.profile
 
+import androidx.compose.animation.*
+import com.example.doesitprovider.ui.components.ErrorBanner
+import com.example.doesitprovider.ui.components.SuccessBanner
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -38,8 +42,16 @@ fun ProfileScreen(
     var nome by remember { mutableStateOf(SessionManager.userName) }
     var celular by remember { mutableStateOf(SessionManager.userPhone) }
     var email by remember { mutableStateOf(SessionManager.userEmail) }
-    var isSaving by remember { mutableStateOf(false) }
+    var isSaving     by remember { mutableStateOf(false) }
+    var successMsg   by remember { mutableStateOf("") }
+    var errorMsg     by remember { mutableStateOf("") }
+    var isSuccess    by remember { mutableStateOf(false) }
+    var isError      by remember { mutableStateOf(false) }
 
+    LaunchedEffect(isSuccess) { if (isSuccess) { delay(5000); isSuccess = false } }
+    LaunchedEffect(isError)   { if (isError)   { delay(5000); isError   = false } }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -125,7 +137,10 @@ fun ProfileScreen(
                 onClick = {
                     scope.launch {
                         isSaving = true
-                        repo.updateProfile(mapOf("name" to nome, "phone" to celular))
+                        repo.updateProfile(mapOf("name" to nome, "phone" to celular)).fold(
+                            onSuccess = { successMsg = "Perfil atualizado com sucesso!"; isSuccess = true },
+                            onFailure = { errorMsg  = it.message ?: "Erro ao salvar perfil"; isError = true }
+                        )
                         isSaving = false
                     }
                 },
@@ -135,5 +150,21 @@ fun ProfileScreen(
             
             Spacer(Modifier.height(32.dp))
         }
+    }
+
+    // Banners animados — 5 s, aparecem sobre tudo
+    AnimatedVisibility(
+        visible = isSuccess && successMsg.isNotEmpty(),
+        enter = slideInVertically { -it } + fadeIn(),
+        exit  = slideOutVertically { -it } + fadeOut(),
+        modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter)
+    ) { SuccessBanner(successMsg) }
+
+    AnimatedVisibility(
+        visible = isError && errorMsg.isNotEmpty(),
+        enter = slideInVertically { -it } + fadeIn(),
+        exit  = slideOutVertically { -it } + fadeOut(),
+        modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter)
+    ) { ErrorBanner(errorMsg) }
     }
 }

@@ -5,10 +5,8 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface ApiService {
-    // ── Auth ─────────────────────────────────────────────────────────────────
-    @POST("api/auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
+    // ── Senha esquecida (REST) ────────────────────────────────────────────────
     @POST("api/auth/forgot-password")
     suspend fun forgotPassword(@Body body: Map<String, String>): Response<Map<String, String>>
 
@@ -18,12 +16,9 @@ interface ApiService {
     @POST("api/auth/reset-password")
     suspend fun resetPassword(@Body body: Map<String, String>): Response<Map<String, String>>
 
-    @POST("api/auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
-
-    // ── Usuário ───────────────────────────────────────────────────────────────
-    @GET("api/users/me")
-    suspend fun getMe(@Header("Authorization") token: String): Response<AuthResponse>
+    // ── Lambda: Perfil do usuário logado ─────────────────────────────────────
+    @GET("usuario")
+    suspend fun getCurrentUser(): Response<AuthResponse>
 
     @PUT("api/users/me")
     suspend fun updateProfile(@Header("Authorization") token: String, @Body body: Map<String, String>): Response<AuthResponse>
@@ -34,27 +29,28 @@ interface ApiService {
     @DELETE("api/users/me")
     suspend fun deleteAccount(@Header("Authorization") token: String): Response<Unit>
 
-    // ── Prestador ─────────────────────────────────────────────────────────────
-    @PUT("api/providers/status")
-    suspend fun setStatus(@Header("Authorization") token: String, @Body body: SetOnlineRequest): Response<Map<String, Any>>
+    // ── Lambda: Endereços — mesmos endpoints/payloads do app Usuário ─────────
+    @GET("meus-enderecos")
+    suspend fun getAddresses(): Response<AddressListResponse>
 
-    // ── Especialidades ────────────────────────────────────────────────────────
-    @GET("api/providers/specialties")
-    suspend fun getMySpecialties(@Header("Authorization") token: String): Response<List<ProviderSpecialtyDTO>>
+    @POST("cadastrar-endereco")
+    suspend fun createAddress(@Body body: Map<String, String>): Response<AddressDTO>
 
-    @POST("api/providers/specialties")
-    suspend fun upsertSpecialty(@Header("Authorization") token: String, @Body body: Map<String, Any>): Response<ProviderSpecialtyDTO>
+    @PUT("atualizar-endereco")
+    suspend fun updateAddress(@Query("id") id: Long, @Body body: Map<String, String>): Response<AddressDTO>
 
-    @DELETE("api/providers/specialties/{categoryId}")
-    suspend fun deleteSpecialty(@Header("Authorization") token: String, @Path("categoryId") categoryId: Long): Response<Unit>
+    // ── Lambda: Notificações — mesmo endpoint/payload do app Usuário ─────────
+    @GET("minhas-notificacoes")
+    suspend fun getNotifications(): Response<NotificationListResponse>
 
-    // ── Pedidos / Serviços ────────────────────────────────────────────────────
-    @GET("api/requests/my")
-    suspend fun getMyHistory(@Header("Authorization") token: String): Response<List<ServiceRequestDTO>>
+    // ── Lambda: Pedidos/Serviços — mesmos endpoints/payloads do app Usuário ──
+    @GET("meus-pedidos")
+    suspend fun getMyHistory(@Query("status") status: String? = null): Response<OrderListResponse>
 
-    @GET("api/requests/{id}")
-    suspend fun getRequestById(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
+    @GET("detalhes-pedido")
+    suspend fun getRequestById(@Query("id") id: Long): Response<ServiceRequestDTO>
 
+    // ── Prestador: ações específicas sobre um pedido ──────────────────────────
     @PUT("api/requests/{id}/accept")
     suspend fun acceptRequest(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
 
@@ -67,14 +63,24 @@ interface ApiService {
     @PUT("api/requests/{id}/cancel")
     suspend fun cancelRequest(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
 
-    // ── Avaliações ────────────────────────────────────────────────────────────
+    // ── Prestador: status online ──────────────────────────────────────────────
+    @PUT("api/providers/status")
+    suspend fun setStatus(@Header("Authorization") token: String, @Body body: SetOnlineRequest): Response<Map<String, Any>>
+
+    // ── Prestador: especialidades ─────────────────────────────────────────────
+    @GET("api/providers/specialties")
+    suspend fun getMySpecialties(@Header("Authorization") token: String): Response<List<ProviderSpecialtyDTO>>
+
+    @POST("api/providers/specialties")
+    suspend fun upsertSpecialty(@Header("Authorization") token: String, @Body body: Map<String, Any>): Response<ProviderSpecialtyDTO>
+
+    @DELETE("api/providers/specialties/{categoryId}")
+    suspend fun deleteSpecialty(@Header("Authorization") token: String, @Path("categoryId") categoryId: Long): Response<Unit>
+
+    // ── Prestador: avaliações recebidas ───────────────────────────────────────
     @POST("api/ratings/user")
     suspend fun rateUser(@Header("Authorization") token: String, @Body body: RatingRequest): Response<Any>
 
     @GET("api/ratings/my-received")
     suspend fun getMyReceivedRatings(@Header("Authorization") token: String): Response<List<RatingResponseDTO>>
-
-    // ── Endereços ─────────────────────────────────────────────────────────────
-    @GET("api/addresses")
-    suspend fun getAddresses(@Header("Authorization") token: String): Response<List<Map<String, Any>>>
 }
