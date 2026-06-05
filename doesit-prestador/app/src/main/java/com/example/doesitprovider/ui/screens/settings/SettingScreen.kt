@@ -43,6 +43,7 @@ fun SettingScreen(
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val repository = remember { UserRepository() }
 
     var showPasswordModal by remember { mutableStateOf(false) }
     var showDeleteModal   by remember { mutableStateOf(false) }
@@ -50,10 +51,10 @@ fun SettingScreen(
     var bannerError   by remember { mutableStateOf("") }
     var bannerSuccess by remember { mutableStateOf("") }
 
-    var pushEnabled     by remember { mutableStateOf(true) }
-    var emailEnabled    by remember { mutableStateOf(true) }
-    var smsEnabled      by remember { mutableStateOf(false) }
-    var whatsappEnabled by remember { mutableStateOf(true) }
+    var pushEnabled     by remember { mutableStateOf(SessionManager.notifPushEnabled) }
+    var emailEnabled    by remember { mutableStateOf(SessionManager.notifEmailEnabled) }
+    var smsEnabled      by remember { mutableStateOf(SessionManager.notifSmsEnabled) }
+    var whatsappEnabled by remember { mutableStateOf(SessionManager.notifWhatsappEnabled) }
 
     LaunchedEffect(bannerError)   { if (bannerError.isNotEmpty())   { delay(5000); bannerError   = "" } }
     LaunchedEffect(bannerSuccess) { if (bannerSuccess.isNotEmpty()) { delay(5000); bannerSuccess = "" } }
@@ -104,13 +105,13 @@ fun SettingScreen(
                 item { SettingSectionTitle("NOTIFICAÇÕES") }
                 item {
                     SettingGroupCard {
-                        SettingSwitchItem("Notificação Push", pushEnabled)     { pushEnabled     = it }
+                        SettingSwitchItem("Notificação Push", pushEnabled)     { pushEnabled     = it; SessionManager.notifPushEnabled     = it }
                         HorizontalDivider(color = AppColors.Border)
-                        SettingSwitchItem("Email", emailEnabled)               { emailEnabled    = it }
+                        SettingSwitchItem("Email", emailEnabled)               { emailEnabled    = it; SessionManager.notifEmailEnabled    = it }
                         HorizontalDivider(color = AppColors.Border)
-                        SettingSwitchItem("SMS", smsEnabled)                   { smsEnabled      = it }
+                        SettingSwitchItem("SMS", smsEnabled)                   { smsEnabled      = it; SessionManager.notifSmsEnabled      = it }
                         HorizontalDivider(color = AppColors.Border)
-                        SettingSwitchItem("WhatsApp", whatsappEnabled)         { whatsappEnabled = it }
+                        SettingSwitchItem("WhatsApp", whatsappEnabled)         { whatsappEnabled = it; SessionManager.notifWhatsappEnabled = it }
                     }
                 }
                 item { SettingSectionTitle("MEUS DADOS") }
@@ -119,8 +120,10 @@ fun SettingScreen(
                         SettingItem("Alterar senha de acesso", Icons.Default.Lock) { showPasswordModal = true }
                         HorizontalDivider(color = AppColors.Border)
                         SettingItem("Sair da conta", Icons.AutoMirrored.Filled.ExitToApp, textColor = AppColors.TextSecondary) {
-                            SessionManager.clear()
-                            onLogout?.invoke(null)
+                            scope.launch {
+                                repository.logout()
+                                onLogout?.invoke(null)
+                            }
                         }
                         HorizontalDivider(color = AppColors.Border)
                         SettingItem("Excluir Conta DoesIt", Icons.Default.Delete, textColor = AppColors.Error) { showDeleteModal = true }

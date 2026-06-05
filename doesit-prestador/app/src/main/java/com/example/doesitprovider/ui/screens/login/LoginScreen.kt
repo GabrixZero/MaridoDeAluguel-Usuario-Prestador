@@ -149,7 +149,7 @@ fun LoginScreen(
                             repository.login(email, senha).fold(
                                 onSuccess = { onLoginSuccess() },
                                 onFailure = {
-                                    errorMessage = "E-mail e/ou senha incorretos"
+                                    errorMessage = it.message ?: "E-mail e/ou senha incorretos"
                                     isError = true
                                     senha = ""
                                 }

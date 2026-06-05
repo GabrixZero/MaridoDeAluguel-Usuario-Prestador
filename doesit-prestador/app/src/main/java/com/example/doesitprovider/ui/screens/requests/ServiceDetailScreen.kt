@@ -115,15 +115,8 @@ fun ServiceDetailScreen(
                                     Spacer(Modifier.width(16.dp))
                                     Column(Modifier.weight(1f)) {
                                         Text(service.categoryName, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AppColors.TextPrimary)
-                                        Text(service.userName, color = AppColors.TextSecondary, fontSize = 14.sp)
-                                        // Estrelas do cliente
-                                        if ((service.userRatingCount ?: 0) > 0) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Star, null, Modifier.size(14.dp), tint = Color(0xFFFFC107))
-                                                Text(" ${String.format("%.1f", service.userRating)} (${service.userRatingCount})",
-                                                    fontSize = 12.sp, color = AppColors.TextSecondary)
-                                            }
-                                        }
+                                        Text(service.userName ?: "", color = AppColors.TextSecondary, fontSize = 14.sp)
+
                                     }
                                     StatusBadge(service.status)
                                 }
@@ -135,11 +128,11 @@ fun ServiceDetailScreen(
                                 InfoRow("Modo", if (service.type == "SCHEDULED") "Agendado" else "Agora")
                                 if (!service.address.isNullOrBlank())
                                     InfoRow("Endereço", service.address)
-                                if (service.description.isNotBlank()) {
+                                if (!service.description.isNullOrBlank()) {
                                     Spacer(Modifier.height(8.dp))
                                     Text("Comentário", fontSize = 14.sp, color = AppColors.TextSecondary)
                                     Spacer(Modifier.height(4.dp))
-                                    Text(service.description, fontSize = 15.sp, color = AppColors.TextPrimary, lineHeight = 22.sp)
+                                    Text(service.description ?: "", fontSize = 15.sp, color = AppColors.TextPrimary, lineHeight = 22.sp)
                                 }
                             }
                         }
@@ -147,8 +140,8 @@ fun ServiceDetailScreen(
                         Spacer(Modifier.height(32.dp))
 
                         // ── Ações por status ─────────────────────────────────
-                        when (service.status) {
-                            "PENDING" -> {
+                        when (service.status.uppercase().trim()) {
+                            "PENDING", "PENDENTE" -> {
                                 // Aceitar ou recusar
                                 DoesItButton(
                                     text = "Aceitar a Solicitação",
@@ -193,7 +186,7 @@ fun ServiceDetailScreen(
                                 }
                             }
 
-                            "ACCEPTED" -> {
+                            "ACCEPTED", "AGENDADO" -> {
                                 // Iniciar serviço (com regra de 10 min para SCHEDULED)
                                 DoesItButton(
                                     text = "Iniciar Serviço",
@@ -243,7 +236,7 @@ fun ServiceDetailScreen(
                                 }
                             }
 
-                            "IN_PROGRESS" -> {
+                            "IN_PROGRESS", "EM ANDAMENTO" -> {
                                 Card(
                                     colors = CardDefaults.cardColors(containerColor = AppColors.SuccessLight),
                                     shape = RoundedCornerShape(12.dp)
@@ -259,7 +252,7 @@ fun ServiceDetailScreen(
                                 }
                             }
 
-                            "COMPLETED" -> {
+                            "COMPLETED", "CONCLUIDO", "CONCLUÍDO" -> {
                                 // Avaliação do cliente (apenas uma vez)
                                 if (alreadyRated) {
                                     Card(
@@ -275,7 +268,7 @@ fun ServiceDetailScreen(
                                 } else {
                                     Text("Avaliar Cliente", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AppColors.TextPrimary)
                                     Spacer(Modifier.height(16.dp))
-                                    Text("Como foi atender ${service.userName}?", color = AppColors.TextSecondary, fontSize = 14.sp)
+                                    Text("Como foi atender ${service.userName ?: "o cliente"}?", color = AppColors.TextSecondary, fontSize = 14.sp)
                                     Spacer(Modifier.height(16.dp))
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         for (i in 1..5) {
@@ -333,7 +326,7 @@ fun ServiceDetailScreen(
                                 }
                             }
 
-                            "CANCELLED" -> {
+                            "CANCELLED", "CANCELADO" -> {
                                 Card(
                                     colors = CardDefaults.cardColors(containerColor = AppColors.ErrorLight),
                                     shape = RoundedCornerShape(12.dp)
@@ -344,6 +337,10 @@ fun ServiceDetailScreen(
                                         Text("Este serviço foi cancelado.", color = AppColors.Error, fontWeight = FontWeight.Bold)
                                     }
                                 }
+                            }
+                            else -> {
+                                // Caso caia em algum status não mapeado ou nulo
+                                Text("Status: ${service.status}", color = AppColors.TextSecondary)
                             }
                         }
                         Spacer(Modifier.height(40.dp))

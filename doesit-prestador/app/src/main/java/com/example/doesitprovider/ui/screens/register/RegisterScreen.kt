@@ -22,12 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import com.example.doesitprovider.R
 import com.example.doesitprovider.data.model.RegisterRequest
 import com.example.doesitprovider.data.repository.UserRepository
 import com.example.doesitprovider.ui.components.DoesItButton
 import com.example.doesitprovider.ui.components.DoesItTextField
 import com.example.doesitprovider.ui.components.ErrorBanner
+import com.example.doesitprovider.ui.components.SuccessBanner
 import com.example.doesitprovider.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -65,15 +67,33 @@ fun RegisterScreen(
     var errorMessage by remember { mutableStateOf("") }
     var isError      by remember { mutableStateOf(false) }
 
+    // Success Banner state
+    var successMessage by remember { mutableStateOf("") }
+    var showSuccess    by remember { mutableStateOf(false) }
+
     val generos = listOf("Masculino", "Feminino", "Outros", "Não informar")
     val scope      = rememberCoroutineScope()
     val repository = remember { UserRepository() }
 
     LaunchedEffect(isError) { if (isError) { delay(5000); isError = false } }
+    LaunchedEffect(showSuccess) {
+        if (showSuccess) {
+            delay(2500)
+            showSuccess = false
+            onRegisterSuccess(successMessage)
+        }
+    }
 
     fun showError(msg: String) {
         errorMessage = msg
         isError = true
+        Log.e("RegisterScreen", "Erro: $msg")
+    }
+
+    fun showSuccess(msg: String) {
+        successMessage = msg
+        showSuccess = true
+        Log.d("RegisterScreen", "Sucesso: $msg")
     }
 
     fun validate(): String? {
@@ -363,6 +383,7 @@ fun RegisterScreen(
                     onClick = {
                         val error = validate()
                         if (error == null) {
+                            Log.d("RegisterScreen", "Formulário válido. Iniciando registro...")
                             scope.launch {
                                 isLoading = true
                                 repository.register(
@@ -376,14 +397,19 @@ fun RegisterScreen(
                                     )
                                 ).fold(
                                     onSuccess = {
-                                        // Navega de volta ao Login passando mensagem (igual ao app Usuário)
-                                        onRegisterSuccess("Cadastro feito com sucesso!")
+                                        Log.d("RegisterScreen", "✓ Registro bem-sucedido")
+                                        // Mostra mensagem verde de sucesso antes de navegar
+                                        showSuccess("Cadastro feito com sucesso! Verifique seu e-mail.")
                                     },
-                                    onFailure = { showError(it.message ?: "Erro ao fazer o cadastro") }
+                                    onFailure = {
+                                        Log.e("RegisterScreen", "✗ Erro no registro: ${it.message}")
+                                        showError(it.message ?: "Erro ao fazer o cadastro")
+                                    }
                                 )
                                 isLoading = false
                             }
                         } else {
+                            Log.d("RegisterScreen", "Erro de validação: $error")
                             showError(error)
                         }
                     },
@@ -417,6 +443,14 @@ fun RegisterScreen(
             exit  = slideOutVertically { -it } + fadeOut(),
             modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter)
         ) { ErrorBanner(message = errorMessage) }
+
+        // SuccessBanner animado — mostra mensagem de sucesso após registro
+        AnimatedVisibility(
+            visible = showSuccess && successMessage.isNotEmpty(),
+            enter = slideInVertically { -it } + fadeIn(),
+            exit  = slideOutVertically { -it } + fadeOut(),
+            modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter)
+        ) { SuccessBanner(message = successMessage) }
     }
 }
 

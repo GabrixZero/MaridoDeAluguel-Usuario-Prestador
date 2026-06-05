@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doesitprovider.data.model.ServiceRequestDTO
@@ -42,6 +43,7 @@ fun HistoryScreen(
     val scope = rememberCoroutineScope()
     var pedidos by remember { mutableStateOf<List<ServiceRequestDTO>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf("Todos") }
 
     // Filtros iguais ao app Usuário
@@ -57,7 +59,10 @@ fun HistoryScreen(
 
     LaunchedEffect(Unit) {
         scope.launch {
-            repo.getHistory().fold(onSuccess = { pedidos = it }, onFailure = {})
+            repo.getHistory().fold(
+                onSuccess = { pedidos = it },
+                onFailure = { errorMessage = it.message ?: "Erro ao carregar serviços" }
+            )
             isLoading = false
         }
     }
@@ -111,6 +116,14 @@ fun HistoryScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = AppColors.Primary)
                 }
+            } else if (errorMessage.isNotEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.WifiOff, null, tint = AppColors.TextDisabled, modifier = Modifier.size(48.dp))
+                        Spacer(Modifier.height(12.dp))
+                        Text(errorMessage, color = AppColors.TextSecondary, fontSize = 14.sp)
+                    }
+                }
             } else if (filtrados.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Nenhum serviço encontrado", color = AppColors.TextSecondary)
@@ -153,14 +166,33 @@ fun ServiceCard(req: ServiceRequestDTO, onClick: () -> Unit) {
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     Text(req.categoryName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppColors.TextPrimary)
-                    // No historial do prestador mostra o nome do cliente
-                    Text(req.userName, color = AppColors.TextSecondary, fontSize = 14.sp)
+                    // No historial do prestador mostra o nome do cliente (pode estar em userName ou otherPartyName)
+                    val clientName = req.userName ?: req.otherPartyName ?: ""
+                    if (clientName.isNotBlank()) {
+                        Text(clientName, color = AppColors.TextSecondary, fontSize = 14.sp)
+                    }
                 }
                 Text(
                     "R$ ${String.format(Locale.getDefault(), "%.2f", req.finalPrice ?: 0.0)}",
                     fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppColors.TextPrimary
                 )
             }
+            
+            if (!req.address.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, null, Modifier.size(14.dp), tint = AppColors.TextSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        req.address, 
+                        color = AppColors.TextSecondary, 
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
             Spacer(Modifier.height(16.dp))
             HorizontalDivider(color = AppColors.Border)
             Spacer(Modifier.height(16.dp))
@@ -178,13 +210,13 @@ fun ServiceCard(req: ServiceRequestDTO, onClick: () -> Unit) {
 
 @Composable
 fun StatusBadge(status: String) {
-    val (bg, txt, label) = when (status) {
-        "PENDING"     -> Triple(Color(0xFFFFF3E0), Color(0xFFFFA000), "PENDENTE")
-        "ACCEPTED"    -> Triple(Color(0xFFE3F2FD), Color(0xFF1E88E5), "AGENDADO")
-        "IN_PROGRESS" -> Triple(AppColors.SuccessLight, AppColors.Success, "EM ANDAMENTO")
-        "COMPLETED"   -> Triple(AppColors.SuccessLight, AppColors.Success, "CONCLUÍDO")
-        "CANCELLED"   -> Triple(AppColors.ErrorLight,   AppColors.Error,   "CANCELADO")
-        else          -> Triple(AppColors.SurfaceVariant, AppColors.TextSecondary, status)
+    val (bg, txt, label) = when (status.uppercase().trim()) {
+        "PENDING", "PENDENTE" -> Triple(Color(0xFFFFF3E0), Color(0xFFFFA000), "PENDENTE")
+        "ACCEPTED", "AGENDADO" -> Triple(Color(0xFFE3F2FD), Color(0xFF1E88E5), "AGENDADO")
+        "IN_PROGRESS", "EM ANDAMENTO" -> Triple(AppColors.SuccessLight, AppColors.Success, "EM ANDAMENTO")
+        "COMPLETED", "CONCLUIDO", "CONCLUÍDO" -> Triple(AppColors.SuccessLight, AppColors.Success, "CONCLUÍDO")
+        "CANCELLED", "CANCELADO" -> Triple(AppColors.ErrorLight, AppColors.Error, "CANCELADO")
+        else -> Triple(AppColors.SurfaceVariant, AppColors.TextSecondary, status)
     }
     Surface(color = bg, shape = RoundedCornerShape(4.dp)) {
         Text(label, color = txt, fontSize = 11.sp, fontWeight = FontWeight.Bold,
