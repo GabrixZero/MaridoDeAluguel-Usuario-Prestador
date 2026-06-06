@@ -217,6 +217,18 @@ class ServiceRepository {
     } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
 
     // ── Especialidades ────────────────────────────────────────────────────────
+    suspend fun getSpecialtiesFlow(): Result<SpecialtyResponse> = try {
+        val r = api.getSpecialtiesFlow(SessionManager.bearerToken())
+        if (r.isSuccessful && r.body() != null) Result.success(r.body()!!)
+        else Result.failure(Exception("Erro ao carregar especialidades"))
+    } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
+
+    suspend fun saveSpecialtiesFlow(request: SaveSpecialtiesRequest): Result<Unit> = try {
+        val r = api.saveSpecialtiesFlow(SessionManager.bearerToken(), request)
+        if (r.isSuccessful) Result.success(Unit)
+        else Result.failure(Exception("Erro ao salvar especialidades"))
+    } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
+
     suspend fun getMySpecialties(): Result<List<ProviderSpecialtyDTO>> = try {
         val r = api.getMySpecialties(SessionManager.bearerToken())
         if (r.isSuccessful && r.body() != null) Result.success(r.body()!!)

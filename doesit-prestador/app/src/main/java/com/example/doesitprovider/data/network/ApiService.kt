@@ -77,6 +77,13 @@ interface ApiService {
     @DELETE("api/providers/specialties/{categoryId}")
     suspend fun deleteSpecialty(@Header("Authorization") token: String, @Path("categoryId") categoryId: Long): Response<Unit>
 
+    // ── Fluxo de Especialidades (Novos Endpoints) ──────────────────────────────
+    @GET("retorna-especialidades")
+    suspend fun getSpecialtiesFlow(@Header("Authorization") token: String): Response<SpecialtyResponse>
+
+    @POST("salva-especialidades")
+    suspend fun saveSpecialtiesFlow(@Header("Authorization") token: String, @Body body: SaveSpecialtiesRequest): Response<Unit>
+
     // ── Prestador: avaliações recebidas ───────────────────────────────────────
     @POST("api/ratings/user")
     suspend fun rateUser(@Header("Authorization") token: String, @Body body: RatingRequest): Response<Any>

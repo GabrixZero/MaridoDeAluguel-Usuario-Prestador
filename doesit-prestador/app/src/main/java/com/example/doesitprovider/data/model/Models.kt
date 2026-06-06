@@ -100,6 +100,32 @@ data class ProviderSpecialtyDTO(
     @SerializedName("price")        val price: Double
 )
 
+// Novos modelos para /retorna-especialidades e /salva-especialidades
+data class SpecialtyResponse(
+    @SerializedName("especialidades_vinculadas") val linkedSpecialties: List<LinkedSpecialtyDTO>,
+    @SerializedName("catalogo_geral_servicos") val generalCatalog: List<CatalogServiceDTO>
+)
+
+data class LinkedSpecialtyDTO(
+    @SerializedName("id_tipo_servico") val serviceTypeId: Int,
+    @SerializedName("nome_servico") val serviceName: String,
+    @SerializedName("preco_base") val basePrice: Double
+)
+
+data class CatalogServiceDTO(
+    @SerializedName("id_tipo_servico") val serviceTypeId: Int,
+    @SerializedName("nome_servico") val serviceName: String
+)
+
+data class SaveSpecialtiesRequest(
+    @SerializedName("especialidades") val specialties: List<SaveSpecialtyDTO>
+)
+
+data class SaveSpecialtyDTO(
+    @SerializedName("id_tipo_servico") val serviceTypeId: Int,
+    @SerializedName("preco_base") val basePrice: Double
+)
+
 // ── Endereços — chaves JSON idênticas ao app Usuário ─────────────────────────
 data class AddressDTO(
     @SerializedName("id")          val id: Long = 0,

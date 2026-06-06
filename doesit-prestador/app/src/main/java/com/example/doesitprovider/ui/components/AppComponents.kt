@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.doesitprovider.ui.theme.AppColors
 import kotlinx.coroutines.delay
 
@@ -29,7 +30,7 @@ fun SuccessBanner(message: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp)
             .background(AppColors.SuccessBanner, RoundedCornerShape(8.dp))
             .padding(16.dp)
     ) {
@@ -46,7 +47,7 @@ fun ErrorBanner(message: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp)
             .background(AppColors.ErrorBanner, RoundedCornerShape(8.dp))
             .padding(16.dp)
     ) {
@@ -244,7 +245,8 @@ fun NotificationPopupHost() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 40.dp),
+                .padding(top = 16.dp)
+                .zIndex(99f),
             contentAlignment = Alignment.TopCenter
         ) {
             if (msgType == NotificationType.SUCCESS) SuccessBanner(message)

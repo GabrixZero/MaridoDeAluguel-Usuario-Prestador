@@ -79,7 +79,7 @@ fun EditAddressScreen(
     LaunchedEffect(isSuccess) { if (isSuccess) { delay(5000); isSuccess = false } }
 
     val isFormFilled = cep.isNotEmpty() && rua.isNotEmpty() && numero.isNotEmpty() &&
-                       bairro.isNotEmpty() && cidade.isNotEmpty() && estado.isNotEmpty()
+            bairro.isNotEmpty() && cidade.isNotEmpty() && estado.isNotEmpty()
 
     Scaffold(
         containerColor = Color.White,
