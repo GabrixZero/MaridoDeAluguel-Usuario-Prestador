@@ -181,29 +181,14 @@ class ServiceRepository {
         else Result.failure(Exception("Pedido não encontrado"))
     } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
 
-    // ── Ações sobre pedidos ───────────────────────────────────────────────────
-    suspend fun accept(id: Long): Result<ServiceRequestDTO> = try {
-        val r = api.acceptRequest(SessionManager.bearerToken(), id)
+    // ── Ações sobre pedidos (Agora usando o endpoint genérico /atualizar-pedido) ──
+    suspend fun updateStatus(id: Long, newStatusId: Int): Result<UpdateOrderStatusResponse> = try {
+        val r = api.updateOrderStatus(SessionManager.bearerToken(), UpdateOrderStatusRequest(id, newStatusId))
         if (r.isSuccessful && r.body() != null) Result.success(r.body()!!)
-        else { val err = r.errorBody()?.string() ?: ""; Result.failure(Exception(err.ifBlank { "Pedido não disponível" })) }
-    } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
-
-    suspend fun refuse(id: Long): Result<ServiceRequestDTO> = try {
-        val r = api.refuseRequest(SessionManager.bearerToken(), id)
-        if (r.isSuccessful && r.body() != null) Result.success(r.body()!!)
-        else Result.failure(Exception("Erro ao recusar"))
-    } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
-
-    suspend fun start(id: Long): Result<ServiceRequestDTO> = try {
-        val r = api.startRequest(SessionManager.bearerToken(), id)
-        if (r.isSuccessful && r.body() != null) Result.success(r.body()!!)
-        else { val err = r.errorBody()?.string() ?: ""; Result.failure(Exception(err.ifBlank { "Erro ao iniciar serviço" })) }
-    } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
-
-    suspend fun cancel(id: Long): Result<ServiceRequestDTO> = try {
-        val r = api.cancelRequest(SessionManager.bearerToken(), id)
-        if (r.isSuccessful && r.body() != null) Result.success(r.body()!!)
-        else Result.failure(Exception("Erro ao cancelar"))
+        else {
+            val err = r.errorBody()?.string() ?: ""
+            Result.failure(Exception(err.ifBlank { "Erro ao atualizar pedido" }))
+        }
     } catch (e: Exception) { Result.failure(Exception("Sem conexão")) }
 
     // ── Avaliação ─────────────────────────────────────────────────────────────

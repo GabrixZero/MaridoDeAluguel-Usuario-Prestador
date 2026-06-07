@@ -43,7 +43,7 @@ import java.util.Locale
 fun ServiceDetailScreen(
     requestId: Long,
     onBack: () -> Unit,
-    onDone: () -> Unit   // navega para Home após cancelamento ou conclusão
+    onDone: () -> Unit
 ) {
     val repo = remember { ServiceRepository() }
     val scope = rememberCoroutineScope()
@@ -57,23 +57,42 @@ fun ServiceDetailScreen(
     var successMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
-    // Avaliação
-    var selectedStars by remember { mutableIntStateOf(0) }
-    var ratingComment by remember { mutableStateOf("") }
-    var alreadyRated by remember { mutableStateOf(false) }
-
     fun loadRequest() {
         scope.launch {
             isLoading = true
-            repo.getById(requestId).fold(onSuccess = { req = it }, onFailure = {
-                errorMessage = "Erro ao carregar detalhes"; isError = true
-            })
+            repo.getById(requestId).fold(
+                onSuccess = { req = it },
+                onFailure = { errorMessage = "Erro ao carregar detalhes"; isError = true }
+            )
             isLoading = false
         }
     }
 
-    LaunchedEffect(requestId) { loadRequest() }
+    // Função centralizada para atualizar status
+    fun handleStatusUpdate(newStatusId: Int, message: String) {
+        scope.launch {
+            isActionLoading = true
+            repo.updateStatus(requestId, newStatusId).fold(
+                onSuccess = {
+                    successMessage = message
+                    isSuccess = true
+                    if (newStatusId == 4) { // Se for cancelamento, volta para a lista
+                        delay(1500)
+                        onDone()
+                    } else {
+                        loadRequest() // Recarrega para atualizar a UI reativamente
+                    }
+                },
+                onFailure = { 
+                    errorMessage = it.message ?: "Erro ao atualizar status"
+                    isError = true 
+                }
+            )
+            isActionLoading = false
+        }
+    }
 
+    LaunchedEffect(requestId) { loadRequest() }
     LaunchedEffect(isError)   { if (isError)   { delay(5000); isError   = false } }
     LaunchedEffect(isSuccess) { if (isSuccess) { delay(5000); isSuccess = false } }
 
@@ -116,7 +135,6 @@ fun ServiceDetailScreen(
                                     Column(Modifier.weight(1f)) {
                                         Text(service.categoryName, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AppColors.TextPrimary)
                                         Text(service.userName ?: "", color = AppColors.TextSecondary, fontSize = 14.sp)
-
                                     }
                                     StatusBadge(service.status)
                                 }
@@ -139,104 +157,61 @@ fun ServiceDetailScreen(
 
                         Spacer(Modifier.height(32.dp))
 
-                        // ── Ações por status ─────────────────────────────────
-                        when (service.status.uppercase().trim()) {
-                            "PENDING", "PENDENTE" -> {
-                                // Aceitar ou recusar
+                        // ── Ações Reativas ao status_id ──────────────────────
+                        // 1 "PENDENTE", 2 "AGENDADO", 3 "CONCLUIDO", 4 "CANCELADO", 5 "EM ANDAMENTO"
+                        val statusId = service.statusId ?: 0
+
+                        when (statusId) {
+                            1 -> { // PENDENTE: Pode aceitar (2) ou cancelar (4)
                                 DoesItButton(
                                     text = "Aceitar a Solicitação",
-                                    onClick = {
-                                        scope.launch {
-                                            isActionLoading = true
-                                            repo.accept(service.id).fold(
-                                                onSuccess = {
-                                                    successMessage = "Solicitação aceita!"; isSuccess = true
-                                                    loadRequest()
-                                                },
-                                                onFailure = { errorMessage = it.message ?: "Erro ao aceitar"; isError = true }
-                                            )
-                                            isActionLoading = false
-                                        }
-                                    },
+                                    onClick = { handleStatusUpdate(2, "Solicitação aceita!") },
                                     isLoading = isActionLoading,
                                     showArrow = false
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            isActionLoading = true
-                                            repo.refuse(service.id).fold(
-                                                onSuccess = {
-                                                    successMessage = "Solicitação recusada."; isSuccess = true
-                                                    delay(1500); onDone()
-                                                },
-                                                onFailure = { errorMessage = it.message ?: "Erro ao recusar"; isError = true }
-                                            )
-                                            isActionLoading = false
-                                        }
-                                    },
+                                    onClick = { handleStatusUpdate(4, "Solicitação recusada.") },
                                     enabled = !isActionLoading,
                                     modifier = Modifier.fillMaxWidth().height(56.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Error),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.Error)
                                 ) {
-                                    Text("Recusar a Solicitação", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text("Recusar Solicitação", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
                             }
 
-                            "ACCEPTED", "AGENDADO" -> {
-                                // Iniciar serviço (com regra de 10 min para SCHEDULED)
+                            2 -> { // AGENDADO: Pode iniciar (5) ou cancelar (4)
                                 DoesItButton(
                                     text = "Iniciar Serviço",
-                                    onClick = {
-                                        scope.launch {
-                                            isActionLoading = true
-                                            repo.start(service.id).fold(
-                                                onSuccess = {
-                                                    successMessage = "Serviço iniciado!"; isSuccess = true
-                                                    loadRequest()
-                                                },
-                                                onFailure = { errorMessage = it.message ?: "Erro ao iniciar"; isError = true }
-                                            )
-                                            isActionLoading = false
-                                        }
-                                    },
+                                    onClick = { handleStatusUpdate(5, "Serviço iniciado!") },
                                     isLoading = isActionLoading,
                                     showArrow = false,
                                     containerColor = AppColors.Success
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            isActionLoading = true
-                                            repo.cancel(service.id).fold(
-                                                onSuccess = { delay(800); onDone() },
-                                                onFailure = { errorMessage = it.message ?: "Erro ao cancelar"; isError = true }
-                                            )
-                                            isActionLoading = false
-                                        }
-                                    },
+                                    onClick = { handleStatusUpdate(4, "Agendamento cancelado.") },
                                     enabled = !isActionLoading,
                                     modifier = Modifier.fillMaxWidth().height(56.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Error),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.Error)
                                 ) {
-                                    Text("Cancelar Serviço", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                }
-                                if (service.type == "SCHEDULED") {
-                                    Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        "Para serviços agendados, o botão 'Iniciar' fica disponível a partir de 10 minutos antes do horário marcado.",
-                                        fontSize = 12.sp, color = AppColors.TextSecondary, lineHeight = 18.sp
-                                    )
+                                    Text("Cancelar Agendamento", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
                             }
 
-                            "IN_PROGRESS", "EM ANDAMENTO" -> {
+                            5 -> { // EM ANDAMENTO: Pode concluir (3)
+                                DoesItButton(
+                                    text = "Concluir Serviço",
+                                    onClick = { handleStatusUpdate(3, "Serviço concluído com sucesso!") },
+                                    isLoading = isActionLoading,
+                                    showArrow = false,
+                                    containerColor = AppColors.Primary
+                                )
+                                Spacer(Modifier.height(16.dp))
                                 Card(
                                     colors = CardDefaults.cardColors(containerColor = AppColors.SuccessLight),
                                     shape = RoundedCornerShape(12.dp)
@@ -246,91 +221,24 @@ fun ServiceDetailScreen(
                                         Spacer(Modifier.width(12.dp))
                                         Column {
                                             Text("Serviço em andamento", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppColors.Success)
-                                            Text("Aguardando confirmação de finalização pelo cliente.", fontSize = 14.sp, color = AppColors.TextSecondary, lineHeight = 18.sp)
+                                            Text("Clique em concluir ao terminar o atendimento.", fontSize = 14.sp, color = AppColors.TextSecondary)
                                         }
                                     }
                                 }
                             }
 
-                            "COMPLETED", "CONCLUIDO", "CONCLUÍDO" -> {
-                                // Avaliação do cliente (apenas uma vez)
-                                if (alreadyRated) {
-                                    Card(
-                                        colors = CardDefaults.cardColors(containerColor = AppColors.SuccessLight),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.CheckCircle, null, tint = AppColors.Success)
-                                            Spacer(Modifier.width(12.dp))
-                                            Text("Avaliação enviada! Obrigado.", color = AppColors.Success, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                } else {
-                                    Text("Avaliar Cliente", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AppColors.TextPrimary)
-                                    Spacer(Modifier.height(16.dp))
-                                    Text("Como foi atender ${service.userName ?: "o cliente"}?", color = AppColors.TextSecondary, fontSize = 14.sp)
-                                    Spacer(Modifier.height(16.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        for (i in 1..5) {
-                                            val scale by animateFloatAsState(
-                                                if (selectedStars >= i) 1.2f else 1f,
-                                                animationSpec = spring(Spring.DampingRatioMediumBouncy), label = "star$i"
-                                            )
-                                            Icon(
-                                                imageVector = if (selectedStars >= i) Icons.Default.Star else Icons.Outlined.StarOutline,
-                                                contentDescription = null,
-                                                tint = if (selectedStars >= i) Color(0xFFFFC107) else AppColors.TextDisabled,
-                                                modifier = Modifier.size(40.dp).scale(scale)
-                                                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { selectedStars = i }
-                                            )
-                                        }
-                                    }
-                                    Spacer(Modifier.height(20.dp))
-                                    OutlinedTextField(
-                                        value = ratingComment, onValueChange = { ratingComment = it },
-                                        placeholder = { Text("Comentário sobre o cliente...", color = AppColors.TextDisabled) },
-                                        modifier = Modifier.fillMaxWidth().height(100.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedContainerColor = AppColors.InputBackground, unfocusedContainerColor = AppColors.InputBackground,
-                                            focusedBorderColor = AppColors.Primary, unfocusedBorderColor = Color.Transparent
-                                        )
-                                    )
-                                    Spacer(Modifier.height(20.dp))
-                                    val canRate = selectedStars > 0 && !isActionLoading
-                                    Button(
-                                        onClick = {
-                                            scope.launch {
-                                                isActionLoading = true
-                                                repo.rateUser(service.id, selectedStars, ratingComment.trim()).fold(
-                                                    onSuccess = { alreadyRated = true; successMessage = "Avaliação enviada!"; isSuccess = true },
-                                                    onFailure = {
-                                                        if ((it.message ?: "").contains("já avaliou")) alreadyRated = true
-                                                        else { errorMessage = it.message ?: "Erro ao avaliar"; isError = true }
-                                                    }
-                                                )
-                                                isActionLoading = false
-                                            }
-                                        },
-                                        enabled = canRate,
-                                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (canRate) AppColors.Primary else AppColors.ButtonDisabled,
-                                            contentColor = if (canRate) Color.White else AppColors.TextButtonDisabled
-                                        )
-                                    ) {
-                                        if (isActionLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
-                                        else Text("Enviar Avaliação", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            3 -> { // CONCLUIDO
+                                Card(colors = CardDefaults.cardColors(containerColor = AppColors.SuccessLight), shape = RoundedCornerShape(12.dp)) {
+                                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.CheckCircle, null, tint = AppColors.Success)
+                                        Spacer(Modifier.width(12.dp))
+                                        Text("Este serviço foi concluído.", color = AppColors.Success, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
 
-                            "CANCELLED", "CANCELADO" -> {
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = AppColors.ErrorLight),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
+                            4 -> { // CANCELADO
+                                Card(colors = CardDefaults.cardColors(containerColor = AppColors.ErrorLight), shape = RoundedCornerShape(12.dp)) {
                                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Cancel, null, tint = AppColors.Error)
                                         Spacer(Modifier.width(12.dp))
@@ -339,7 +247,6 @@ fun ServiceDetailScreen(
                                 }
                             }
                             else -> {
-                                // Caso caia em algum status não mapeado ou nulo
                                 Text("Status: ${service.status}", color = AppColors.TextSecondary)
                             }
                         }
@@ -348,30 +255,17 @@ fun ServiceDetailScreen(
                 }
             }
 
-            // Banners de feedback
-            AnimatedVisibility(
-                visible = isError && errorMessage.isNotEmpty(),
-                enter = slideInVertically { -it } + fadeIn(),
-                exit  = slideOutVertically { -it } + fadeOut(),
-                modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter).zIndex(10f)
-            ) { ErrorBanner(errorMessage) }
-
-            AnimatedVisibility(
-                visible = isSuccess && successMessage.isNotEmpty(),
-                enter = slideInVertically { -it } + fadeIn(),
-                exit  = slideOutVertically { -it } + fadeOut(),
-                modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter).zIndex(10f)
-            ) { SuccessBanner(successMessage) }
+            // Feedback
+            AnimatedVisibility(visible = isError && errorMessage.isNotEmpty(), enter = slideInVertically { -it } + fadeIn(), exit  = slideOutVertically { -it } + fadeOut(), modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter).zIndex(10f)) { ErrorBanner(errorMessage) }
+            AnimatedVisibility(visible = isSuccess && successMessage.isNotEmpty(), enter = slideInVertically { -it } + fadeIn(), exit  = slideOutVertically { -it } + fadeOut(), modifier = Modifier.padding(top = 40.dp).align(Alignment.TopCenter).zIndex(10f)) { SuccessBanner(successMessage) }
         }
     }
 }
 
 @Composable
 private fun InfoRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
         Text(label, fontSize = 14.sp, color = AppColors.TextSecondary, modifier = Modifier.weight(1f))
-        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary,
-            textAlign = TextAlign.End, modifier = Modifier.weight(1.5f))
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary, textAlign = TextAlign.End, modifier = Modifier.weight(1.5f))
     }
 }

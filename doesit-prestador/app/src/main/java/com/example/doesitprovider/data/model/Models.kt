@@ -156,3 +156,14 @@ data class NotificationDTO(
 data class NotificationListResponse(
     @SerializedName("notificacoes") val notifications: List<NotificationDTO>
 )
+
+// Novos modelos para /atualizar-pedido
+
+data class UpdateOrderStatusRequest(
+    @SerializedName("id_solicitacao") val requestId: Long,
+    @SerializedName("novo_status_id") val newStatusId: Int
+)
+
+data class UpdateOrderStatusResponse(
+    @SerializedName("mensagem") val message: String
+)

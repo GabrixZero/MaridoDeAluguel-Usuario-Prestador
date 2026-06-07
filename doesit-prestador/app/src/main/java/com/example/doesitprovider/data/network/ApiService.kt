@@ -50,18 +50,11 @@ interface ApiService {
     @GET("detalhes-pedido")
     suspend fun getRequestById(@Query("id") id: Long): Response<ServiceRequestDTO>
 
-    // ── Prestador: ações específicas sobre um pedido ──────────────────────────
-    @PUT("api/requests/{id}/accept")
-    suspend fun acceptRequest(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
-
-    @PUT("api/requests/{id}/refuse")
-    suspend fun refuseRequest(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
-
-    @PUT("api/requests/{id}/start")
-    suspend fun startRequest(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
-
-    @PUT("api/requests/{id}/cancel")
-    suspend fun cancelRequest(@Header("Authorization") token: String, @Path("id") id: Long): Response<ServiceRequestDTO>
+    @PUT("atualizar-pedido")
+    suspend fun updateOrderStatus(
+        @Header("Authorization") token: String,
+        @Body body: UpdateOrderStatusRequest
+    ): Response<UpdateOrderStatusResponse>
 
     // ── Prestador: status online ──────────────────────────────────────────────
     @PUT("api/providers/status")
@@ -81,7 +74,7 @@ interface ApiService {
     @GET("retorna-especialidades")
     suspend fun getSpecialtiesFlow(@Header("Authorization") token: String): Response<SpecialtyResponse>
 
-    @POST("salva-especialidades")
+    @PUT("salva-especialidades")
     suspend fun saveSpecialtiesFlow(@Header("Authorization") token: String, @Body body: SaveSpecialtiesRequest): Response<Unit>
 
     // ── Prestador: avaliações recebidas ───────────────────────────────────────

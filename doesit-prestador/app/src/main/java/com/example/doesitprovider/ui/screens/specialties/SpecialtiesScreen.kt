@@ -91,15 +91,35 @@ fun SpecialtiesScreen(
                     onClick = {
                         scope.launch {
                             isSaving = true
+                            
+                            // 1. Processa as linhas que já estão na lista
                             val listToSave = rows.mapNotNull { row ->
                                 val price = row.price.replace(",", ".").toDoubleOrNull()
                                 if (price != null && price > 0) {
                                     SaveSpecialtyDTO(row.categoryId, price)
                                 } else null
+                            }.toMutableList()
+
+                            // 2. Processa a linha de "Adição" se estiver preenchida (evita que o usuário precise clicar no +)
+                            val pendingPrice = newItemPrice.replace(",", ".").toDoubleOrNull()
+                            if (newItemCategoryId != null && pendingPrice != null && pendingPrice > 0) {
+                                if (listToSave.none { it.serviceTypeId == newItemCategoryId }) {
+                                    listToSave.add(SaveSpecialtyDTO(newItemCategoryId!!, pendingPrice))
+                                }
                             }
+
+                            if (listToSave.isEmpty()) {
+                                errorMsg = "Selecione ao menos uma especialidade e defina seu valor base."
+                                isSaving = false
+                                return@launch
+                            }
+
                             repo.saveSpecialtiesFlow(SaveSpecialtiesRequest(listToSave)).fold(
                                 onSuccess = {
                                     successMsg = "Alterações salvas com sucesso!"
+                                    // Limpa a linha de adição
+                                    newItemCategoryId = null
+                                    newItemPrice = ""
                                     loadData()
                                 },
                                 onFailure = { errorMsg = it.message ?: "Erro ao salvar" }
@@ -186,7 +206,7 @@ fun SpecialtiesScreen(
                 }
             }
 
-            // Banners de feedback (Ajustado zIndex e padding para não cortar)
+            // Banners de feedback
             Box(Modifier.fillMaxWidth().padding(top = 16.dp).zIndex(100f)) {
                 AnimatedVisibility(
                     visible = errorMsg.isNotEmpty(),
